@@ -29,15 +29,22 @@ const serverless = require("serverless-http");
 let serverlessHandler;
 
 // Export the serverless function handler directly
+// Inside backend/server.js
+
 module.exports.handler = async (event, context) => {
-  // Ensure async layers boot exactly once when the serverless container wakes up
   if (!serverlessHandler) {
     try {
       await initializeStore();
-      await validateEmailSetup();
+
+      try {
+        await validateEmailSetup();
+      } catch (emailError) {
+        console.warn("[WARNING] Email SMTP setup bypassed on cloud environment:", emailError.message);
+      }
 
       const taskRoutes = require("./routes/taskRoutes");
       const authRoutes = require("./routes/authRoutes");
+
 
       app.use("/api/tasks", taskRoutes);
       app.use("/tasks", taskRoutes);     // Fallback

@@ -12,15 +12,15 @@
 // does this automatically). For a single-user local app, this is fine.
 // ─────────────────────────────────────────────────────────────
 
-const path    = require("path");
-const fs      = require("fs");
+const path = require("path");
+const fs = require("fs");
 const initSqlJs = require("sql.js");
 
 // ─── PATHS (SERVERLESS SAFEQUARD INTEGRATED) ──────────────────
 // Netlify Functions run on a read-only file system. The only directory 
 // where AWS Lambda permits file attachments and write calls is /tmp.
 const isServerless = process.env.NETLIFY || process.env.LAMBDA_TASK_ROOT;
-const DB_DIR  = isServerless ? "/tmp" : path.join(__dirname, "../db");
+const DB_DIR = isServerless ? "/tmp" : path.join(__dirname, "../db");
 const DB_PATH = path.join(DB_DIR, "tasks.sqlite");
 // ─────────────────────────────────────────────────────────────
 
@@ -42,21 +42,27 @@ const flushToDisk = () => {
 // Returns a Promise — must be awaited in server.js before the
 // Express app starts accepting requests. This ensures the DB
 // is ready before any route handler can run.
+// Inside backend/config/database.js
+
 const initializeStore = async () => {
   fs.mkdirSync(DB_DIR, { recursive: true });
 
-  const SQL = await initSqlJs();  // Load the WebAssembly module
+  const config = isServerless
+    ? { locateFile: file => `https://sql.js.org/dist/${file}` }
+    : {};
+
+  const SQL = await initSqlJs(config); // Load the WebAssembly module with cloud fallback
 
   if (fs.existsSync(DB_PATH)) {
-    // Load existing database file into memory
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
     console.log(`[DB] Loaded existing SQLite database at: ${DB_PATH}`);
   } else {
-    // Create a fresh database
     db = new SQL.Database();
     console.log(`[DB] Created new SQLite database in memory space.`);
   }
+
+  // ... (keep your table schema code exactly the same below)
 
   // ── SCHEMA ────────────────────────────────────────────────
   // CREATE TABLE IF NOT EXISTS is idempotent — safe on every restart.
@@ -96,7 +102,7 @@ const initializeStore = async () => {
  * Run a SELECT query. Returns an array of plain objects.
  */
 const query = (sql, params = []) => {
-  const stmt    = db.prepare(sql);
+  const stmt = db.prepare(sql);
   const results = [];
   stmt.bind(params);
   while (stmt.step()) {
