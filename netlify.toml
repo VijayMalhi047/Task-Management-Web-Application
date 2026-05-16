@@ -1,5 +1,4 @@
 [build]
-  # ✅ FIXED: Installs frontend dependencies, builds the UI, then installs backend dependencies
   command = "cd frontend && npm install && npm run build && cd ../backend && npm install"
   publish = "frontend/dist"
 
@@ -9,6 +8,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/server/:splat"
+  to = "/.netlify/functions/server/api/:splat" # ✅ FIXED: Keeps /api in the path for Express
   status = 200
   force = true

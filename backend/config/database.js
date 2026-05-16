@@ -16,9 +16,13 @@ const path    = require("path");
 const fs      = require("fs");
 const initSqlJs = require("sql.js");
 
-// ─── PATHS ────────────────────────────────────────────────────
-const DB_DIR  = path.join(__dirname, "../db");
+// ─── PATHS (SERVERLESS SAFEQUARD INTEGRATED) ──────────────────
+// Netlify Functions run on a read-only file system. The only directory 
+// where AWS Lambda permits file attachments and write calls is /tmp.
+const isServerless = process.env.NETLIFY || process.env.LAMBDA_TASK_ROOT;
+const DB_DIR  = isServerless ? "/tmp" : path.join(__dirname, "../db");
 const DB_PATH = path.join(DB_DIR, "tasks.sqlite");
+// ─────────────────────────────────────────────────────────────
 
 // ─── MODULE-LEVEL DB REFERENCE ────────────────────────────────
 // Holds the live sql.js Database instance once initialized.
@@ -47,11 +51,11 @@ const initializeStore = async () => {
     // Load existing database file into memory
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
-    console.log("[DB] Loaded existing SQLite database.");
+    console.log(`[DB] Loaded existing SQLite database at: ${DB_PATH}`);
   } else {
     // Create a fresh database
     db = new SQL.Database();
-    console.log("[DB] Created new SQLite database.");
+    console.log(`[DB] Created new SQLite database in memory space.`);
   }
 
   // ── SCHEMA ────────────────────────────────────────────────
