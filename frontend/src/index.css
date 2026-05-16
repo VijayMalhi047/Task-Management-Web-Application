@@ -1,0 +1,53 @@
+/* index.css — Global base styles */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base resets and global defaults */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* Smooth scrolling for the whole page */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    /* Dark slate base — our dominant background color */
+    background-color: #0a0f1a;
+    color: #e2e8f0;
+    font-family: 'Lato', sans-serif;
+    /* Subtle noise texture overlay for depth — achieved via CSS */
+    min-height: 100vh;
+  }
+}
+
+/* ── Utility: Staggered fade-in animation ─────────────────── */
+/* Applied to task cards so they animate in sequentially       */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeSlideIn 0.3s ease forwards;
+}
+
+/* ── Utility: Subtle pulse for loading state ──────────────── */
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 1.5s ease-in-out infinite;
+}
