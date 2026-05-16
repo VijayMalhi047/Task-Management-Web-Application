@@ -5,11 +5,12 @@
 [functions]
   directory = "backend"
   node_bundler = "esbuild"
-  # ✅ FIXED: Forces Netlify to package the WebAssembly SQLite driver binary asset
-  included_files = ["backend/node_modules/sql.js/dist/sql-wasm.wasm"]
+  # ✅ FIXED: Tells Netlify to preserve the raw binary WebAssembly files as an unbundled module
+  external_node_modules = ["sql.js"]
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/server/api/:splat"
+  # ✅ FIXED: Passes paths through smoothly to match your routing targets
+  to = "/.netlify/functions/server/:splat"
   status = 200
   force = true

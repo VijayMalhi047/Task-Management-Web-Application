@@ -3,20 +3,25 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const serverless = require("serverless-http");
+
 const { initializeStore } = require("./config/database");
 const { validateEmailSetup } = require("./controllers/authController");
-const errorHandler = require("./middleware/errorHandler"); // ✅ Fixed: Moved to global scope
+const taskRoutes = require("./routes/taskRoutes");
+const authRoutes = require("./routes/authRoutes");
+const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
+// Enable wide cross-origin routing for serverless execution testing
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 app.use(express.json());
 
 app.use((req, _res, next) => {
-  console.log(`[${new Date().toISOString()}]  ${req.method}  ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
@@ -24,49 +29,39 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// ── SERVERLESS NETLIFY DEPLOYMENT CONFIGURATION ─────────────────────
-const serverless = require("serverless-http");
-let serverlessHandler;
+// Dual-mounting handles both proxy path structures natively
+app.use("/api/tasks", taskRoutes);
+app.use("/tasks", taskRoutes);
 
-// Export the serverless function handler directly
-// Inside backend/server.js
+app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
+
+app.use((_req, res) => {
+  res.status(404).json({ error: "Route not found." });
+});
+
+app.use(errorHandler);
+
+const serverlessHandlerInstance = serverless(app);
 
 module.exports.handler = async (event, context) => {
-  if (!serverlessHandler) {
+  // Prevent background loops from stalling the gateway execution response
+  context.callbackWaitsForEmptyEventLoop = false;
+  
+  try {
+    await initializeStore();
     try {
-      await initializeStore();
-
-      try {
-        await validateEmailSetup();
-      } catch (emailError) {
-        console.warn("[WARNING] Email SMTP setup bypassed on cloud environment:", emailError.message);
-      }
-
-      const taskRoutes = require("./routes/taskRoutes");
-      const authRoutes = require("./routes/authRoutes");
-
-
-      app.use("/api/tasks", taskRoutes);
-      app.use("/tasks", taskRoutes);     // Fallback
-
-      app.use("/api/auth", authRoutes);
-      app.use("/auth", authRoutes);
-
-      app.use((_req, res) => {
-        res.status(404).json({ error: "Route not found." });
-      });
-
-      // Centralized error interceptor
-      app.use(errorHandler);
-
-      // Wrap Express app with serverless router layers
-      serverlessHandler = serverless(app);
-    } catch (error) {
-      console.error("Fatal boot collapse:", error);
-      throw error;
+      await validateEmailSetup();
+    } catch (emailError) {
+      console.warn("[SMTP WARNING] Verification bypassed on cloud execution nodes:", emailError.message);
     }
+  } catch (bootError) {
+    console.error("[FATAL CRASH] Core boot collapse:", bootError);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal initialization error", details: bootError.message })
+    };
   }
 
-  // Process incoming request
-  return serverlessHandler(event, context);
+  return serverlessHandlerInstance(event, context);
 };
