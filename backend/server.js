@@ -1,13 +1,13 @@
 // server.js
 require("dotenv").config();
 
-const express  = require("express");
-const cors     = require("cors");
+const express = require("express");
+const cors = require("cors");
 const { initializeStore } = require("./config/database");
 const { validateEmailSetup } = require("./controllers/authController");
 const errorHandler = require("./middleware/errorHandler"); // ✅ Fixed: Moved to global scope
 
-const app  = express();
+const app = express();
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:3000"],
@@ -40,7 +40,10 @@ module.exports.handler = async (event, context) => {
       const authRoutes = require("./routes/authRoutes");
 
       app.use("/api/tasks", taskRoutes);
-      app.use("/api/auth",  authRoutes);
+      app.use("/tasks", taskRoutes);     // Fallback
+
+      app.use("/api/auth", authRoutes);
+      app.use("/auth", authRoutes);
 
       app.use((_req, res) => {
         res.status(404).json({ error: "Route not found." });
