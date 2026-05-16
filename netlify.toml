@@ -1,15 +1,13 @@
 [build]
-  # Commands to build the frontend
-  command = "cd frontend && npm install && npm run build"
+  # ✅ FIXED: Installs frontend dependencies, builds the UI, then installs backend dependencies
+  command = "cd frontend && npm install && npm run build && cd ../backend && npm install"
   publish = "frontend/dist"
 
 [functions]
-  # Points Netlify directly to your backend folder to compile functions
   directory = "backend"
   node_bundler = "esbuild"
 
 [[redirects]]
-  # Redirects any browser api requests smoothly to your serverless backend
   from = "/api/*"
   to = "/.netlify/functions/server/:splat"
   status = 200
