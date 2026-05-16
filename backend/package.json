@@ -14,6 +14,7 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.7",
+    "serverless-http": "^4.0.0",
     "sql.js": "^1.14.1"
   },
   "devDependencies": {

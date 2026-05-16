@@ -5,9 +5,9 @@ const express  = require("express");
 const cors     = require("cors");
 const { initializeStore } = require("./config/database");
 const { validateEmailSetup } = require("./controllers/authController");
+const errorHandler = require("./middleware/errorHandler"); // ✅ Fixed: Moved to global scope
 
 const app  = express();
-const PORT = process.env.PORT || 5000;
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:3000"],
@@ -24,36 +24,39 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// ── Routes (registered after DB is ready) ─────────────────────
-const startServer = async () => {
-  try {
-    // Wait for sql.js WASM to load and schema to initialize
-    // before accepting any requests
-    await initializeStore();
-    await validateEmailSetup();
+// ── SERVERLESS NETLIFY DEPLOYMENT CONFIGURATION ─────────────────────
+const serverless = require("serverless-http");
+let serverlessHandler;
 
-    const taskRoutes = require("./routes/taskRoutes");
-    const authRoutes = require("./routes/authRoutes");    // new
+// Export the serverless function handler directly
+module.exports.handler = async (event, context) => {
+  // Ensure async layers boot exactly once when the serverless container wakes up
+  if (!serverlessHandler) {
+    try {
+      await initializeStore();
+      await validateEmailSetup();
 
-    app.use("/api/tasks", taskRoutes);
-    app.use("/api/auth",  authRoutes);                    // new
+      const taskRoutes = require("./routes/taskRoutes");
+      const authRoutes = require("./routes/authRoutes");
 
-    app.use((_req, res) => {
-      res.status(404).json({ error: "Route not found." });
-    });
+      app.use("/api/tasks", taskRoutes);
+      app.use("/api/auth",  authRoutes);
 
-    const errorHandler = require("./middleware/errorHandler");
-    app.use(errorHandler);
+      app.use((_req, res) => {
+        res.status(404).json({ error: "Route not found." });
+      });
 
-    app.listen(PORT, () => {
-      console.log(`[Server] Running on http://localhost:${PORT}`);
-    });
+      // Centralized error interceptor
+      app.use(errorHandler);
 
-  } catch (err) {
-    console.error("[Server] Failed to start:", err);
-    process.exit(1);
+      // Wrap Express app with serverless router layers
+      serverlessHandler = serverless(app);
+    } catch (error) {
+      console.error("Fatal boot collapse:", error);
+      throw error;
+    }
   }
-};
 
-startServer();
-module.exports = app;
+  // Process incoming request
+  return serverlessHandler(event, context);
+};

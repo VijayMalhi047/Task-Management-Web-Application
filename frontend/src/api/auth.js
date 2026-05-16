@@ -1,5 +1,5 @@
 // api/auth.js — Auth API calls
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const request = async (endpoint, body) => {
   const res  = await fetch(`${BASE_URL}${endpoint}`, {
