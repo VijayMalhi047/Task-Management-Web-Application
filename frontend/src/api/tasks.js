@@ -13,7 +13,10 @@
 // The base URL for all API calls.
 // Vite exposes env variables via import.meta.env.
 // Falls back to localhost:5000 for local development.
-const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+const BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api" 
+    : "/api");
 
 // ─── HELPER ──────────────────────────────────────────────────
 // Wraps fetch with consistent error handling.
