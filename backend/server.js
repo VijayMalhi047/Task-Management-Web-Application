@@ -65,3 +65,25 @@ module.exports.handler = async (event, context) => {
 
   return serverlessHandlerInstance(event, context);
 };
+
+// Add this at the absolute bottom of backend/server.js
+
+// ─── 💻 LOCAL DEVELOPMENT LAUNCHER ──────────────────────────────
+// This block runs ONLY on your machine. Netlify will completely ignore it.
+if (!process.env.NETLIFY && !process.env.LAMBDA_TASK_ROOT) {
+  const PORT = process.env.PORT || 5000;
+  (async () => {
+    try {
+      // Boot up database and verify credentials locally
+      await initializeStore();
+      await validateEmailSetup();
+      
+      app.listen(PORT, () => {
+        console.log(`\n🚀 [SUCCESS] Local API Server active at: http://localhost:${PORT}`);
+        console.log(`🔒 SQLite DB mounted locally in development mode.\n`);
+      });
+    } catch (err) {
+      console.error("❌ Local development boot crash:", err);
+    }
+  })();
+}
